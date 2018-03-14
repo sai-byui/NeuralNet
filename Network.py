@@ -35,9 +35,9 @@ class Network:
                     for index, net_input in enumerate(inputs):
                         j.enqueue(net_input * j.weights[index])
             else:
-                for j in self.layers[i]:
-                    for index, neuron in enumerate(self.layers[i - 1]):
-                        neuron.calc_output()
+                for index, neuron in enumerate(self.layers[i - 1]):
+                    neuron.calc_output()
+                    for j in self.layers[i]:
                         j.enqueue(neuron.output * j.weights[index])
         output = []
         for out_neuron in self.layers[len(self.layers) - 1]:
@@ -72,7 +72,7 @@ class Network:
         for index1, data_point in enumerate(output):
             for index2, out in enumerate(data_point):
                 original_error += (out - expected[index1][index2]) ** 2.0
-                print("Expected: " + str(expected[index1]) + ", got: " + str(data_point))
+                # print("Expected: " + str(expected[index1]) + ", got: " + str(data_point))
 
         original_error = sqrt(original_error)
         original_weights = self.__get_weights__()
@@ -85,7 +85,8 @@ class Network:
                 w_delta = self.temperature * random.uniform(-10, 10)
                 # self.layers[l_index][n_index].weights[w_index] = \
                 #     max(-1.0, min(self.layers[l_index][n_index].weights[w_index] + w_delta, 1.0))
-                self.layers[l_index][n_index].weights[w_index] = self.layers[l_index][n_index].weights[w_index] + w_delta
+                self.layers[l_index][n_index].weights[w_index] = \
+                    self.layers[l_index][n_index].weights[w_index] + w_delta
 
             output = []
             for data_index, data_point in enumerate(inputs):  # For each set of inputs
