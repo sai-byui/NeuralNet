@@ -16,4 +16,4 @@ class Neuron:
         for i in self.inputs:
             total += i
         self.inputs = []
-        self.output = (e ** total) / (1 + e ** total)
+        self.output = ((e ** total) / (1 + e ** total)) * 2.0 - 1.0

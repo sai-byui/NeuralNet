@@ -1,6 +1,7 @@
 from Neuron import Neuron
 import random
 from math import sqrt
+import time
 
 
 class Network:
@@ -16,6 +17,7 @@ class Network:
         self.temperature = 1.0
 
     def __init_weights__(self):
+        random.seed(time.time())
         for i in range(len(self.layers)):
             for j in self.layers[i]:
                 if i == 0:
@@ -44,6 +46,8 @@ class Network:
         return output
 
     def train_network(self, inputs, expected):
+        random.seed(time.time())
+        changed = False
         """Runs the network over multiple data points, and iterates one generation of a semi-genetic algorithm."""
         output = []
         for data_index, data_point in enumerate(inputs):  # For each set of inputs
@@ -68,17 +72,20 @@ class Network:
         for index1, data_point in enumerate(output):
             for index2, out in enumerate(data_point):
                 original_error += (out - expected[index1][index2]) ** 2.0
+                print("Expected: " + str(expected[index1]) + ", got: " + str(data_point))
 
         original_error = sqrt(original_error)
         original_weights = self.__get_weights__()
 
-        for i in range(1000):
-            l_index = random.randint(0, len(self.layers) - 1)
-            n_index = random.randint(0, len(self.layers[l_index]) - 1)
-            w_index = random.randint(0, len(self.layers[l_index][n_index].weights) - 1)
-            w_delta = self.temperature * random.uniform(-1, 1)
-            self.layers[l_index][n_index].weights[w_index] = \
-                max(-1.0, min(self.layers[l_index][n_index].weights[w_index] + w_delta, 1.0))
+        for i in range(100):
+            for j in range(random.randint(1, 100)):
+                l_index = random.randint(0, len(self.layers) - 1)
+                n_index = random.randint(0, len(self.layers[l_index]) - 1)
+                w_index = random.randint(0, len(self.layers[l_index][n_index].weights) - 1)
+                w_delta = self.temperature * random.uniform(-10, 10)
+                # self.layers[l_index][n_index].weights[w_index] = \
+                #     max(-1.0, min(self.layers[l_index][n_index].weights[w_index] + w_delta, 1.0))
+                self.layers[l_index][n_index].weights[w_index] = self.layers[l_index][n_index].weights[w_index] + w_delta
 
             output = []
             for data_index, data_point in enumerate(inputs):  # For each set of inputs
@@ -107,11 +114,13 @@ class Network:
             if error < original_error:
                 original_weights = self.__get_weights__()
                 original_error = error
+                changed = True
             else:
                 self.__set_weights__(original_weights)
 
-        self.temperature *= 0.99
-        print("Setting temperature to " + str(self.temperature))
+        if not changed:
+            self.temperature *= 0.99
+            print("Setting temperature to " + str(self.temperature))
         return original_error
 
     def __get_weights__(self):
