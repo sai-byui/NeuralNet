@@ -50,8 +50,8 @@ class Network:
         changed = False
         """Runs the network over multiple data points, and iterates one generation of a semi-genetic algorithm."""
         output = []
-        for data_index, data_point in enumerate(inputs):  # For each set of inputs
-            output.append(self.run_network(inputs[data_index]))
+        for data_point in inputs:  # For each set of inputs
+            output.append(self.run_network(data_point))
 
         # Error calculated this way so that larger individual errors impact the end result more
         original_error = 0
@@ -81,8 +81,8 @@ class Network:
                     self.layers[l_index][n_index].weights[w_index][index] + w_delta
 
             output = []
-            for data_index, data_point in enumerate(inputs):  # For each set of inputs
-                output.append(self.run_network(inputs[data_index]))
+            for data_point in inputs:  # For each set of inputs
+                output.append(self.run_network(data_point))
 
             # Error calculated this way so that larger individual errors impact the end result more
             error = 0
@@ -104,22 +104,52 @@ class Network:
             print("Setting temperature to " + str(self.temperature))
         return [original_error, original_max_error]
 
+    def train_network_mark2(self, inputs, expected):
+        random.seed(time.time())
+        error = []
+        for i in range(len(inputs[0])):
+            error.append([])
+
+        for data_point_index, data_point in enumerate(inputs):
+            results = self.run_network(data_point)
+            for out_neuron_index, out_neuron in enumerate(self.layers[len(self.layers) - 1]):
+                error[out_neuron_index].append(expected[data_point_index][out_neuron_index] - results[out_neuron_index])
+
+        for error_point_index, error_point in enumerate(error):
+            average = 0.0
+            for i in error_point:
+                average += i
+            average /= float(len(error_point))
+            error[error_point_index] = average / 10.0  # Divide by 10 because we don't want to make big leaps
+
+        for layer_index in range(len(self.layers)):
+            layer_index = len(self.layers) - 1 - layer_index
+            for neuron_index, neuron in enumerate(self.layers[layer_index]):
+                if layer_index == 0: # first layer
+                    pass
+                elif layer_index == len(self.layers) - 1: # last layer
+                    pass
+                else: # any other layer
+                    pass
+
+
+
     def __get_weights__(self):
         weights = []
         for l_index, layer in enumerate(self.layers):
             weights.append([])
-            for n_index, neuron in enumerate(self.layers[l_index]):
+            for n_index, neuron in enumerate(layer):
                 weights[l_index].append([])
-                for w_index, weight in enumerate(self.layers[l_index][n_index].weights):
+                for w_index, weight in enumerate(neuron.weights):
                     weights[l_index][n_index].append([])
-                    for index, weight_type in enumerate(weight):
+                    for weight_type in weight:
                         weights[l_index][n_index][w_index].append(weight_type)
         return weights
 
     def __set_weights__(self, weights):
         for l_index, layer in enumerate(self.layers):
-            for n_index, neuron in enumerate(self.layers[l_index]):
-                for w_index, weight in enumerate(self.layers[l_index][n_index].weights):
+            for n_index, neuron in enumerate(layer):
+                for w_index, weight in enumerate(neuron.weights):
                     for index, weight_type in enumerate(weight):
-                        self.layers[l_index][n_index].weights[w_index][index] = \
+                        weight[index] = \
                             weights[l_index][n_index][w_index][index]
