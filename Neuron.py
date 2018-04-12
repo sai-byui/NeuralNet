@@ -7,6 +7,16 @@ class Neuron:
         self.inputs = []
         self.output = None
 
+        # Variables specifically used for backpropagation
+        self.num_runs = 0
+        self.total_output = 0.0
+        self.average_output = 0.0
+        self.total_requested_delta = 0.0
+        self.num_requests = 0
+        self.average_requested_delta = 0.0
+        self.total_inputs = 0.0
+        self.average_input = 0.0
+
     def enqueue(self, input_amt):
         self.inputs.append(input_amt)
 
@@ -15,5 +25,25 @@ class Neuron:
         total = 0.0
         for i in self.inputs:
             total += i
+            self.total_inputs += i
         self.inputs = []
-        self.output = ((e ** total) / (1 + e ** total)) * 2.0 - 1.0
+        self.output = (1 / (1 + e ** (-total)))
+        self.num_runs += 1
+        self.total_output += self.output
+        self.average_output = self.total_output / self.num_runs
+        self.average_input = self.total_inputs / self.num_runs
+
+    def reset_backprop_vars(self):
+        self.num_runs = 0
+        self.total_output = 0.0
+        self.average_output = 0.0
+        self.total_requested_delta = 0.0
+        self.num_requests = 0
+        self.average_requested_delta = 0.0
+        self.total_inputs = 0.0
+        self.average_input = 0.0
+
+    def request_delta(self, delta):
+        self.total_requested_delta += delta
+        self.num_requests += 1
+        self.average_requested_delta = self.total_requested_delta / self.num_requests

@@ -1,6 +1,6 @@
 from Neuron import Neuron
 import random
-from math import sqrt
+from math import sqrt, e
 import time
 
 
@@ -15,6 +15,7 @@ class Network:
         self.num_inputs = num_inputs
         self.__init_weights__()
         self.temperature = 1.0
+        self.training_rate = 0.1
 
     def __init_weights__(self):
         random.seed(time.time())
@@ -107,7 +108,86 @@ class Network:
     def train_network_mark2(self, inputs, expected):
         random.seed(time.time())
         error = []
-        for i in range(len(inputs[0])):
+        for i in range(len(self.layers[len(self.layers) - 1])):
+            error.append([])
+
+        for layer in self.layers:
+            for neuron in layer:
+                neuron.reset_backprop_vars()
+
+        for data_point_index, data_point in enumerate(inputs):
+            results = self.run_network(data_point)
+            for out_neuron_index, out_neuron in enumerate(self.layers[len(self.layers) - 1]):
+                error[out_neuron_index].append(expected[data_point_index][out_neuron_index] - results[out_neuron_index])
+
+        for out_index, output in enumerate(error):
+            for error_point in output:
+                self.layers[len(self.layers) - 1][out_index].request_delta((error_point * abs(error_point)) * self.training_rate)
+
+        for layer_index in range(len(self.layers)):
+            layer_index = len(self.layers) - 1 - layer_index
+            for neuron_index, neuron in enumerate(self.layers[layer_index]):
+                if layer_index == 0:  # first layer
+                    for w_index, weight in enumerate(neuron.weights):
+                        # Change weight - use average value for that input instead of neuron average activation
+                        total_input = 0.0
+                        for data_point in inputs:
+                            total_input += data_point[w_index]
+                        average_input = total_input / len(inputs)
+                        d_weight = neuron.average_requested_delta
+                        d_weight /= average_input
+                        d_weight /= (e ** (-neuron.average_input) + 1) ** 2
+                        d_weight /= len(neuron.weights)
+                        neuron.weights[w_index][0] += d_weight
+                        if neuron.weights[w_index][0] > 1.0:
+                            neuron.weights[w_index][0] = 1.0
+                        if neuron.weights[w_index][0] < -1.0:
+                            neuron.weights[w_index][0] = -1.0
+
+                        # Change bias
+                        d_bias = neuron.average_requested_delta
+                        d_bias /= e ** neuron.average_input
+                        d_bias *= (e ** neuron.average_input + 1) ** 2
+                        d_bias /= len(neuron.weights)
+                        neuron.weights[w_index][1] += d_bias
+                        if neuron.weights[w_index][1] > 1.0:
+                            neuron.weights[w_index][1] = 1.0
+                        if neuron.weights[w_index][1] < -1.0:
+                            neuron.weights[w_index][1] = -1.0
+                else:  # any other layer
+                    for w_index, weight in enumerate(neuron.weights):
+                        # Request delta from previous neuron
+                        d_previous_neuron = neuron.average_requested_delta
+                        if weight[0] == 0:
+                            print(weight)
+                        d_previous_neuron /= weight[0]
+                        d_previous_neuron /= (e ** (-neuron.average_input) + 1) ** 2
+                        d_previous_neuron /= len(neuron.weights)
+                        self.layers[layer_index - 1][w_index].request_delta(d_previous_neuron)
+
+                        # Change weight
+                        d_weight = neuron.average_requested_delta
+                        d_weight /= self.layers[layer_index - 1][w_index].average_output
+                        d_weight /= (e ** (-neuron.average_input) + 1) ** 2
+                        d_weight /= len(neuron.weights)
+                        neuron.weights[w_index][0] += d_weight
+                        if neuron.weights[w_index][0] > 1.0:
+                            neuron.weights[w_index][0] = 1.0
+                        if neuron.weights[w_index][0] < -1.0:
+                            neuron.weights[w_index][0] = -1.0
+
+                        # Change bias
+                        d_bias = neuron.average_requested_delta
+                        d_bias /= (e ** (-neuron.average_input) + 1) ** 2
+                        d_bias /= len(neuron.weights)
+                        neuron.weights[w_index][1] += d_bias
+                        if neuron.weights[w_index][1] > 1.0:
+                            neuron.weights[w_index][1] = 1.0
+                        if neuron.weights[w_index][1] < -1.0:
+                            neuron.weights[w_index][1] = -1.0
+
+        error = []
+        for i in range(len(self.layers[len(self.layers) - 1])):
             error.append([])
 
         for data_point_index, data_point in enumerate(inputs):
@@ -115,24 +195,15 @@ class Network:
             for out_neuron_index, out_neuron in enumerate(self.layers[len(self.layers) - 1]):
                 error[out_neuron_index].append(expected[data_point_index][out_neuron_index] - results[out_neuron_index])
 
-        for error_point_index, error_point in enumerate(error):
-            average = 0.0
-            for i in error_point:
-                average += i
-            average /= float(len(error_point))
-            error[error_point_index] = average / 10.0  # Divide by 10 because we don't want to make big leaps
-
-        for layer_index in range(len(self.layers)):
-            layer_index = len(self.layers) - 1 - layer_index
-            for neuron_index, neuron in enumerate(self.layers[layer_index]):
-                if layer_index == 0: # first layer
-                    pass
-                elif layer_index == len(self.layers) - 1: # last layer
-                    pass
-                else: # any other layer
-                    pass
-
-
+        total_error = 0.0
+        max_error = 0.0
+        for error_point in error:
+            for output in error_point:
+                total_error += output ** 2
+                if abs(output) > max_error:
+                    max_error = abs(output)
+        total_error = sqrt(total_error)
+        return[total_error, max_error]
 
     def __get_weights__(self):
         weights = []
