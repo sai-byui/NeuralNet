@@ -1,6 +1,6 @@
 from Neuron import Neuron
 import random
-from math import sqrt, e
+from math import sqrt, e, pi, cos, sin
 import time
 
 
@@ -15,7 +15,7 @@ class Network:
         self.num_inputs = num_inputs
         self.__init_weights__()
         self.temperature = 1.0
-        self.training_rate = 0.1
+        self.training_rate = 0.01
 
     def __init_weights__(self):
         random.seed(time.time())
@@ -46,7 +46,7 @@ class Network:
             output.append(out_neuron.output)
         return output
 
-    def train_network(self, inputs, expected):
+    def train_network_gen_alg(self, inputs, expected):
         random.seed(time.time())
         changed = False
         """Runs the network over multiple data points, and iterates one generation of a semi-genetic algorithm."""
@@ -105,7 +105,7 @@ class Network:
             print("Setting temperature to " + str(self.temperature))
         return [original_error, original_max_error]
 
-    def train_network_mark2(self, inputs, expected):
+    def train_network_backprop(self, inputs, expected):
         random.seed(time.time())
         error = []
         for i in range(len(self.layers[len(self.layers) - 1])):
@@ -204,6 +204,114 @@ class Network:
                     max_error = abs(output)
         total_error = sqrt(total_error)
         return[total_error, max_error]
+
+    def train_network_gen_alg_mark2(self, inputs, expected):
+        theta = pi / 2
+        population = []
+        for i in range(500):
+            population.append(Network(self.topology, self.num_inputs))
+            weights = self.__get_weights__()
+            population[i].__set_weights__(weights)
+            for l_index, layer in enumerate(population[i].layers):
+                for n_index, neuron in enumerate(population[i].layers[l_index]):
+                    for w_index, weight in enumerate(population[i].layers[l_index][n_index].weights):
+                        population[i].layers[l_index][n_index].weights[w_index][0] += random.uniform(-self.training_rate, self.training_rate)
+                        population[i].layers[l_index][n_index].weights[w_index][1] += random.uniform(-self.training_rate, self.training_rate)
+
+        while theta > 0:
+            print("Theta: " + str(theta))
+            target = self.get_target_from_theta(theta)
+            ranked_list = []
+            largest_avg_distance = 0
+            largest_fitness = 0 # fitness = 1/error
+            for net1 in population:
+                total_distance = 0
+                count = 0
+                for net2 in population:
+                    total_distance += net1.get_distance(net2)
+                    count += 1
+                net1.avg_distance = total_distance / count
+                if net1.avg_distance > largest_avg_distance:
+                    largest_avg_distance = net1.avg_distance
+
+                error = []
+                for i in range(len(net1.layers[len(net1.layers) - 1])):
+                    error.append([])
+
+                for data_point_index, data_point in enumerate(inputs):
+                    results = net1.run_network(data_point)
+                    for out_neuron_index, out_neuron in enumerate(net1.layers[len(net1.layers) - 1]):
+                        error[out_neuron_index].append(
+                            expected[data_point_index][out_neuron_index] - results[out_neuron_index])
+
+                total_error = 0.0
+                for error_point in error:
+                    for output in error_point:
+                        total_error += output ** 2
+                total_error = sqrt(total_error)
+                net1.fitness = 1/total_error
+                if net1.fitness > largest_fitness:
+                    largest_fitness = net1.fitness
+
+            for net in population:
+                net.normalized_avg_distance = net.avg_distance / largest_avg_distance
+                net.normalized_fitness = net.fitness / largest_fitness
+
+                net.distance_to_target = sqrt((net.normalized_fitness - target[0])** 2.0 + (net.normalized_avg_distance - target[1]) ** 2.0)
+
+                if not ranked_list:
+                    ranked_list.append(net)
+                else:
+                    for index, i in enumerate(ranked_list):
+                        if net.distance_to_target <= i.distance_to_target:
+                            ranked_list.insert(index, net)
+                            break
+                    else:
+                        ranked_list.append(net)
+
+            new_list = []
+            for i in range(250):
+                new_list.append(ranked_list[i])
+            population = new_list
+
+            for net in population:
+                new_net = Network(net.topology, net.num_inputs)
+                new_net.__set_weights__(net.__get_weights__())
+                for l_index, layer in enumerate(new_net.layers):
+                    for n_index, neuron in enumerate(new_net.layers[l_index]):
+                        for w_index, weight in enumerate(new_net.layers[l_index][n_index].weights):
+                            new_net.layers[l_index][n_index].weights[w_index][0] += random.uniform(
+                                -self.training_rate, self.training_rate)
+                            new_net.layers[l_index][n_index].weights[w_index][1] += random.uniform(
+                                -self.training_rate, self.training_rate)
+
+            theta -= 0.01
+
+        best_fitness = 0
+        best_net = None
+        for net in population:
+            if net.fitness:
+                if net.fitness > best_fitness:
+                    best_fitness = net.fitness
+                    best_net = net
+
+        self.__set_weights__(best_net.__get_weights__())
+        return best_fitness
+
+    def get_target_from_theta(self, theta):
+        return [cos(theta), sin(theta)]
+
+    def get_distance(self, net):
+        squares = 0
+        for l_index, layer in enumerate(self.layers):
+            for n_index, neuron in enumerate(layer):
+                for w_index, weight in enumerate(neuron.weights):
+                    squares += (weight[0] - net.layers[l_index][n_index].weights[w_index][0]) ** 2.0
+                    squares += (weight[1] - net.layers[l_index][n_index].weights[w_index][1]) ** 2.0
+        return sqrt(squares)
+
+
+
 
     def __get_weights__(self):
         weights = []
