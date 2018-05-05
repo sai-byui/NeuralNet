@@ -12,6 +12,7 @@ class Network:
             self.layers.append([])
             for neuron in range(layer):
                 self.layers[index].append(Neuron())
+        print("There are " + str(len(self.layers)) + " Layers")
         self.num_inputs = num_inputs
         self.__init_weights__()
         self.temperature = 1.0
@@ -30,6 +31,11 @@ class Network:
 
     def run_network(self, inputs):
         """Runs the network through a SINGLE set of inputs (one data point) and returns the result. No training."""
+
+        if len(inputs) != len(self.layers[0]):
+            raise Exception("Trying to run data with " + str(len(inputs)) + " inputs through network with " +
+                            str(len(self.layers[0])) + " inputs!")
+
         for i in range(len(self.layers)):
             if i == 0:
                 for j in self.layers[i]:
@@ -122,7 +128,8 @@ class Network:
 
         for out_index, output in enumerate(error):
             for error_point in output:
-                self.layers[len(self.layers) - 1][out_index].request_delta((error_point * abs(error_point)) * self.training_rate)
+                self.layers[len(self.layers) - 1][out_index].request_delta((error_point * abs(error_point)) *
+                                                                           self.training_rate)
 
         for layer_index in range(len(self.layers)):
             layer_index = len(self.layers) - 1 - layer_index
@@ -215,15 +222,17 @@ class Network:
             for l_index, layer in enumerate(population[i].layers):
                 for n_index, neuron in enumerate(population[i].layers[l_index]):
                     for w_index, weight in enumerate(population[i].layers[l_index][n_index].weights):
-                        population[i].layers[l_index][n_index].weights[w_index][0] += random.uniform(-self.training_rate, self.training_rate)
-                        population[i].layers[l_index][n_index].weights[w_index][1] += random.uniform(-self.training_rate, self.training_rate)
+                        population[i].layers[l_index][n_index].weights[w_index][0] += \
+                            random.uniform(-self.training_rate, self.training_rate)
+                        population[i].layers[l_index][n_index].weights[w_index][1] += \
+                            random.uniform(-self.training_rate, self.training_rate)
 
         while theta > 0:
             print("Theta: " + str(theta))
             target = self.get_target_from_theta(theta)
             ranked_list = []
             largest_avg_distance = 0
-            largest_fitness = 0 # fitness = 1/error
+            largest_fitness = 0
             for net1 in population:
                 total_distance = 0
                 count = 0
@@ -257,7 +266,8 @@ class Network:
                 net.normalized_avg_distance = net.avg_distance / largest_avg_distance
                 net.normalized_fitness = net.fitness / largest_fitness
 
-                net.distance_to_target = sqrt((net.normalized_fitness - target[0])** 2.0 + (net.normalized_avg_distance - target[1]) ** 2.0)
+                net.distance_to_target = sqrt((net.normalized_fitness - target[0]) ** 2.0 +
+                                              (net.normalized_avg_distance - target[1]) ** 2.0)
 
                 if not ranked_list:
                     ranked_list.append(net)
@@ -298,7 +308,8 @@ class Network:
         self.__set_weights__(best_net.__get_weights__())
         return best_fitness
 
-    def get_target_from_theta(self, theta):
+    @staticmethod
+    def get_target_from_theta(theta):
         return [cos(theta), sin(theta)]
 
     def get_distance(self, net):
@@ -309,9 +320,6 @@ class Network:
                     squares += (weight[0] - net.layers[l_index][n_index].weights[w_index][0]) ** 2.0
                     squares += (weight[1] - net.layers[l_index][n_index].weights[w_index][1]) ** 2.0
         return sqrt(squares)
-
-
-
 
     def __get_weights__(self):
         weights = []
