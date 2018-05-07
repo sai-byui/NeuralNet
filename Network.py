@@ -308,6 +308,17 @@ class Network:
         self.__set_weights__(best_net.__get_weights__())
         return best_fitness
 
+    def train_adversarial(self, fitness_callback):
+        pass
+        # Create new network to be an adversary
+        # Make the new network's weights only slightly different from the current network
+        # get the fitnesses by calling the fitness_callback with both networks as parameters
+            # the fitness should have two numbers - like [2.5, 6.2] - the first for the current network's fitness,
+            # the second for the new network
+        # if the new network's fitness is higher, use its weights to replace those of the current network
+
+
+
     @staticmethod
     def get_target_from_theta(theta):
         return [cos(theta), sin(theta)]
