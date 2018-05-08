@@ -309,15 +309,30 @@ class Network:
         return best_fitness
 
     def train_adversarial(self, fitness_callback):
-        pass
         # Create new network to be an adversary
+        net2 = Network(self.topology, self.num_inputs)
         # Make the new network's weights only slightly different from the current network
+        net2.__set_weights__(self.__get_weights__())
+        for l_index, layer in enumerate(net2.layers):
+            for n_index, neuron in enumerate(net2.layers[l_index]):
+                for w_index, weight in enumerate(net2.layers[l_index][n_index].weights):
+                    net2.layers[l_index][n_index].weights[w_index][0] += \
+                        random.uniform(-self.training_rate, self.training_rate)
+                    net2.layers[l_index][n_index].weights[w_index][1] += \
+                        random.uniform(-self.training_rate, self.training_rate)
         # get the fitnesses by calling the fitness_callback with both networks as parameters
-            # the fitness should have two numbers - like [2.5, 6.2] - the first for the current network's fitness,
-            # the second for the new network
+        fitness = fitness_callback(self, net2)
+        # the fitness should have two numbers - like [2.5, 6.2] - the first for the current network's fitness,
+        # the second for the new network. raise exception otherwise.
+        if len(fitness) != 2:
+            raise(Exception("ERROR: Fitness must be a list of two numbers!"))
+        try:
+            fitness[0] * fitness[1]
+        except:
+            raise(Exception("ERROR: Fitness must be a list of two numbers!"))
         # if the new network's fitness is higher, use its weights to replace those of the current network
-
-
+        if fitness[1] > fitness[1]:
+            self.__set_weights__(net2.__get_weights__())
 
     @staticmethod
     def get_target_from_theta(theta):
