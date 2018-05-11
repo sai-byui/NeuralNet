@@ -2,7 +2,7 @@ from Network import Network
 from TrainingData import TrainingData, DataPoint
 
 print("Creating network.")
-net = Network([2, 8, 8, 4], 2)
+net = Network([2, 8, 8, 4])
 
 training_data = TrainingData()
 #                     Inputs: 0 and 1  Expected outputs:and, or, nand, xor

@@ -5,7 +5,10 @@ import time
 
 
 class Network:
-    def __init__(self, topology, num_inputs):
+    """Network class. Contains all the code needed to describe a simple feedforward network. 
+    Layers, neurons, weights, etc. Contains functions for training the network."""
+
+    def __init__(self, topology):
         self.topology = topology  # For copying during the training process
         self.layers = []
         for index, layer in enumerate(topology):
@@ -13,7 +16,6 @@ class Network:
             for neuron in range(layer):
                 self.layers[index].append(Neuron())
         print("There are " + str(len(self.layers)) + " Layers")
-        self.num_inputs = num_inputs
         self.__init_weights__()
         self.temperature = 1.0
         self.training_rate = 0.01
@@ -23,8 +25,8 @@ class Network:
         for i in range(len(self.layers)):
             for j in self.layers[i]:
                 if i == 0:
-                    for net_input in range(self.num_inputs):
-                        j.weights.append([random.uniform(-1.0, 1.0), random.uniform(-1.0, 1.0)])
+                    for net_input in range(len(self.layers[0])):
+                        j.weights.append([1, 0])
                 else:
                     for neuron in range(len(self.layers[i - 1])):
                         j.weights.append([random.uniform(-1.0, 1.0), random.uniform(-1.0, 1.0)])
@@ -53,6 +55,8 @@ class Network:
         return output
 
     def train_network_gen_alg(self, inputs, expected):
+        """Trains the neural network with a pseudo-genetic algorithm. Returns a list: 
+        [error metric, max error in any output]"""
         random.seed(time.time())
         changed = False
         """Runs the network over multiple data points, and iterates one generation of a semi-genetic algorithm."""
@@ -112,6 +116,8 @@ class Network:
         return [original_error, original_max_error]
 
     def train_network_backprop(self, inputs, expected):
+        """Trains the network using backpropagation. Not currently functional. Returns error in the same format as 
+        train_network_gen_alg"""
         random.seed(time.time())
         error = []
         for i in range(len(self.layers[len(self.layers) - 1])):
@@ -213,10 +219,12 @@ class Network:
         return[total_error, max_error]
 
     def train_network_gen_alg_mark2(self, inputs, expected):
+        """Trains network using a different variation of a genetic algorithm."""
+
         theta = pi / 2
         population = []
         for i in range(500):
-            population.append(Network(self.topology, self.num_inputs))
+            population.append(Network(self.topology))
             weights = self.__get_weights__()
             population[i].__set_weights__(weights)
             for l_index, layer in enumerate(population[i].layers):
@@ -285,7 +293,7 @@ class Network:
             population = new_list
 
             for net in population:
-                new_net = Network(net.topology, net.num_inputs)
+                new_net = Network(net.topology)
                 new_net.__set_weights__(net.__get_weights__())
                 for l_index, layer in enumerate(new_net.layers):
                     for n_index, neuron in enumerate(new_net.layers[l_index]):
@@ -309,8 +317,11 @@ class Network:
         return best_fitness
 
     def train_adversarial(self, fitness_callback):
+        """Trains network using evolutionary algorithm and fitness instead of error. 
+        Uses a callback so the user can determine how fitness is assigned."""
+
         # Create new network to be an adversary
-        net2 = Network(self.topology, self.num_inputs)
+        net2 = Network(self.topology)
         # Make the new network's weights only slightly different from the current network
         net2.__set_weights__(self.__get_weights__())
         for l_index, layer in enumerate(net2.layers):
@@ -336,9 +347,13 @@ class Network:
 
     @staticmethod
     def get_target_from_theta(theta):
+        """Used in train_network_gen_alg_mark2 to determine the target - whether the training should
+        currently focus on diversity or fitness."""
         return [cos(theta), sin(theta)]
 
     def get_distance(self, net):
+        """Gets the euclidean distance between two networks in n-dimensional space."""
+
         squares = 0
         for l_index, layer in enumerate(self.layers):
             for n_index, neuron in enumerate(layer):
